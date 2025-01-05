@@ -2,36 +2,37 @@
 * Connects to a Wifi network and sends UDP messages based on 4 buttons.
 */
 
-
-#include <ESP8266WiFi.h>
+#include <SPI.h>
+#include <WiFi.h>
 #include <WiFiUdp.h>
 
-#define PIN_BTN_1 D1  // GPIO5
-#define PIN_BTN_2 D2  // GPIO4
-#define PIN_BTN_3 D6  // GPIO12
-#define PIN_BTN_4 D7  // GPIO13
-#define PIN_LED D4    // GPIO2
+#define PIN_BTN_1 D2
+#define PIN_BTN_2 D3
+#define PIN_BTN_3 D0
+#define PIN_BTN_4 D1
+#define PIN_LED D10
 
 const char ssid[] = "Headrush Servant";
 const char pass[] = "dG4=ZWgXDaaj2Q-5";
 const char* servantIP = "192.168.169.1";
 const int servantPort = 18788;
-const char MSG_SCENE1[] = "button_scene1";
-const char MSG_SCENE2[] = "button_scene2";
-const char MSG_SCENE3[] = "button_scene3";
-const char MSG_SCENE4[] = "button_scene4";
+const char* MSG_SCENE1 = "button_scene1";
+const char* MSG_SCENE2 = "button_scene2";
+const char* MSG_SCENE3 = "button_scene3";
+const char* MSG_SCENE4 = "button_scene4";
 
 int btn1;
 int btn2;
 int btn3;
 int btn4;
 
-bool buttonPressed = false;
-
 WiFiUDP Udp;
+
+bool buttonPressed = false;
 
 void blink(int times = 1, int millis = 200) {
   while (times-- > 0) {
+    // Serial.print("Blink " + times);
     digitalWrite(PIN_LED, LOW);
     delay(millis);
     digitalWrite(PIN_LED, HIGH);
@@ -42,7 +43,9 @@ void sendUdpMessage(const char* message) {
   // Serial.println("Sending UDP message '" + message + "'");
   if (!buttonPressed) {
     Udp.beginPacket(servantIP, servantPort);
-    Udp.write(message);
+    int i = 0;
+    while (message[i] != 0)
+      Udp.write((uint8_t) message[i++ ]);
     Udp.endPacket();
     // Serial.println("'" + message + "' sent!");
     blink();
@@ -52,14 +55,13 @@ void sendUdpMessage(const char* message) {
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("Setting up button pins");
+  Serial.println("Setting pins");
   pinMode(PIN_BTN_1, INPUT_PULLUP);
   pinMode(PIN_BTN_2, INPUT_PULLUP);
   pinMode(PIN_BTN_3, INPUT_PULLUP);
   pinMode(PIN_BTN_4, INPUT_PULLUP);
   pinMode(PIN_LED, OUTPUT);
 
-  Serial.println("Setting up WIFI");
   // WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, pass);
   while (WiFi.status() != WL_CONNECTED) {
@@ -67,10 +69,10 @@ void setup() {
     delay(200);
   }
   blink(5);
-  sendUdpMessage("Remote connected!");
+  const char* msg = "Remote connected!";
+  sendUdpMessage(msg);
   Serial.println("Connected! IP address: ");
   Serial.println(WiFi.localIP());
-  // Udp.begin(2390);
 }
 
 void loop() {
@@ -89,5 +91,6 @@ void loop() {
   } else {
     buttonPressed = false;
   }
+
   delay(100);
 }
